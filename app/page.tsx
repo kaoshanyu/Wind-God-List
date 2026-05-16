@@ -33,7 +33,7 @@ function useBlowingDetection() {
       setResult(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       streamRef.current = stream;
-      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      const ac = new (window.AudioContext || (window as any).webkitAudioContext)();
       await ac.resume();
       const analyser = ac.createAnalyser();
       analyser.fftSize = 256;
