@@ -7,7 +7,7 @@ export interface LeaderboardEntry {
   avg: number;
   durPct: number;
   stability: string;
-  scene: "beach" | "city";
+  scene: "beach" | "city" | "cute";
 }
 
 const STORAGE_KEY = "fyshen-leaderboard";
