@@ -2,44 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import PixelScene from "@/components/pixel-scene";
-
-// ===================== Wind Scale Data 0-17 =====================
-
-interface WindLevelInfo {
-  level: number;
-  name: string;
-  speedMs: string;
-  speedKmh: string;
-  sea: string;
-  land: string;
-  desc: string;
-  tip: string;
-}
-
-const WIND_SCALE: WindLevelInfo[] = [
-  { level: 0, name: "无风", speedMs: "<0.3", speedKmh: "<1", sea: "海面如镜", land: "静烟直上", desc: "风平浪静，帽子稳如泰山", tip: "这基本就是你深吸一口气的状态" },
-  { level: 1, name: "软风", speedMs: "0.3-1.5", speedKmh: "1-5", sea: "微波粼粼", land: "烟示风向", desc: "发梢微微飘动，伞还不用撑", tip: "≈ 人慢走的速度" },
-  { level: 2, name: "轻风", speedMs: "1.6-3.3", speedKmh: "6-11", sea: "小波", land: "树叶微响", desc: "脸上能感觉到风了，伞开始不安分", tip: "≈ 自行车慢骑" },
-  { level: 3, name: "微风", speedMs: "3.4-5.4", speedKmh: "12-19", sea: "小浪", land: "旗展开", desc: "伞明显弯了，发型开始乱", tip: "≈ 散步的速度" },
-  { level: 4, name: "和风", speedMs: "5.5-7.9", speedKmh: "20-28", sea: "轻浪", land: "尘土扬起", desc: "人和伞一起歪，帽子开始翻飞", tip: "≈ 慢跑速度" },
-  { level: 5, name: "劲风", speedMs: "8.0-10.7", speedKmh: "29-38", sea: "中浪", land: "小树摇摆", desc: "帽子剧烈翻飞！撑伞已经很费劲了", tip: "≈ 自行车正常骑行" },
-  { level: 6, name: "强风", speedMs: "10.8-13.8", speedKmh: "39-49", sea: "大浪", land: "电线有声", desc: "🎩 帽子飞了！人被风推着走", tip: "≈ 跑步冲刺的速度" },
-  { level: 7, name: "疾风", speedMs: "13.9-17.1", speedKmh: "50-61", sea: "巨浪", land: "步行困难", desc: "伞快撑不住了，人被吹着跑", tip: "≈ 骑电动车" },
-  { level: 8, name: "大风", speedMs: "17.2-20.7", speedKmh: "62-74", sea: "狂浪", land: "折毁树枝", desc: "伞骨弯了！蹲下抵抗！", tip: "≈ 城市快速路车速" },
-  { level: 9, name: "烈风", speedMs: "20.8-24.4", speedKmh: "75-88", sea: "狂涛", land: "屋顶受损", desc: "伞反了！人要起飞了！！", tip: "≈ 高速公路上车速" },
-  { level: 10, name: "狂风", speedMs: "24.5-28.4", speedKmh: "89-102", sea: "怒涛", land: "拔树倒屋", desc: "脚离地了！救命！！！", tip: "≈ 火车速度" },
-  { level: 11, name: "暴风", speedMs: "28.5-32.6", speedKmh: "103-117", sea: "异常巨浪", land: "重大损毁", desc: "人在空中飞，伞已经散架了", tip: "≈ 高铁速度" },
-  { level: 12, name: "飓风", speedMs: "32.7-36.9", speedKmh: "118-133", sea: "怒涛滔天", land: "毁坏极大", desc: "人没了，没了……", tip: "≈ 台风中心风力" },
-  { level: 13, name: "台风", speedMs: "37.0-41.4", speedKmh: "134-149", sea: "海啸级", land: "灾难性破坏", desc: "棕榈树断了！场景在摇晃！", tip: "CMA 定义的台风下限" },
-  { level: 14, name: "强台风", speedMs: "41.5-46.1", speedKmh: "150-166", sea: "毁灭级", land: "建筑物损毁", desc: "树断了！沙尘暴！末日来了！", tip: "≈ 高铁时速 300km/h 的一半" },
-  { level: 15, name: "强台风", speedMs: "46.2-50.9", speedKmh: "167-183", sea: "毁灭级", land: "严重结构破坏", desc: "棕榈树被连根拔起！世界末日！", tip: "这风能把你吹到隔壁城市" },
-  { level: 16, name: "超强台风", speedMs: "51.0-56.0", speedKmh: "184-202", sea: "极恐怖", land: "毁灭一切", desc: "棕榈树都断了！满屏飞 debris！", tip: "≈ F1 赛车的极速" },
-  { level: 17, name: "超强台风", speedMs: ">56.1", speedKmh: ">203", sea: "末日的海", land: "末日模式", desc: "像素世界已经毁灭了……", tip: "≈ 磁悬浮列车速度！人类几乎无法站立" },
-];
-
-function getWindInfo(level: number): WindLevelInfo {
-  return WIND_SCALE[Math.max(0, Math.min(17, Math.round(level)))] || WIND_SCALE[0];
-}
+import CityScene from "@/components/city-scene";
+import CuteScene from "@/components/cute-scene";
+import LeaderboardPanel from "@/components/leaderboard-panel";
+import { getWindInfo, WIND_LEVEL_COLORS } from "@/lib/wind-scale";
+import { saveLeaderboardEntry, getLeaderboard, clearLeaderboard } from "@/lib/leaderboard-storage";
+import type { LeaderboardEntry } from "@/lib/leaderboard-storage";
 
 // ===================== Blowing Detection =====================
 
@@ -184,30 +152,28 @@ function WindProfileChart({ profile, maxSamples = 60 }: { profile: number[]; max
 
 function WindLevelSelector({ level, onChange }: { level: number; onChange: (n: number) => void }) {
   const info = getWindInfo(level);
-  const pct = (level / 17) * 100;
-  const colors = ["#b5c4b1", "#c4c9b5", "#c4b5d4", "#b5c4c9", "#d4c9b5", "#d4b5b5", "#d4a0a0", "#c9a9b8", "#c08080", "#b07070", "#a06060", "#905050", "#e8a0a0", "#d08080", "#c06060", "#a04040"];
-  const color = colors[Math.min(level, 16)] || "#e8a0a0";
+  const color = WIND_LEVEL_COLORS[Math.min(level, 16)] || "#e8a0a0";
 
   return (
     <div className="space-y-3">
       {/* Stepper */}
-      <div className="flex items-center justify-center gap-4">
+      <div className="flex items-center justify-center gap-5">
         <button
           onClick={() => onChange(Math.max(0, level - 1))}
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-light transition-all hover:scale-110 active:scale-90"
-          style={{ background: "rgba(255,255,255,0.15)", color }}
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold transition-all hover:scale-125 active:scale-90 hover:shadow-lg"
+          style={{ background: "rgba(255,255,255,0.2)", color, border: `1px solid ${color}40` }}
           disabled={level <= 0}
         >◀</button>
 
-        <div className="text-center min-w-[100px]">
-          <div className="text-5xl font-bold tabular-nums tracking-tight" style={{ color }}>{level}</div>
-          <div className="text-sm font-medium mt-0.5" style={{ color: `${color}CC` }}>{info.name}</div>
+        <div className="text-center min-w-[120px]">
+          <div className="text-6xl font-black tabular-nums tracking-tight drop-shadow-lg" style={{ color }}>{level}</div>
+          <div className="text-sm font-bold mt-1 px-3 py-0.5 rounded-full" style={{ background: `${color}20`, color: `${color}CC` }}>{info.name}</div>
         </div>
 
         <button
           onClick={() => onChange(Math.min(17, level + 1))}
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-light transition-all hover:scale-110 active:scale-90"
-          style={{ background: "rgba(255,255,255,0.15)", color }}
+          className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold transition-all hover:scale-125 active:scale-90 hover:shadow-lg"
+          style={{ background: "rgba(255,255,255,0.2)", color, border: `1px solid ${color}40` }}
           disabled={level >= 17}
         >▶</button>
       </div>
@@ -264,31 +230,36 @@ function EducationCard({ level }: { level: number }) {
   const info = getWindInfo(level);
   const emoji = level === 0 ? "🏳️" : level <= 3 ? "🏁" : level <= 6 ? "🚩" : level <= 9 ? "⛳" : level <= 12 ? "🏴" : "☄️";
 
+  const levelEmoji = level >= 13 ? "🔥🔥🔥" : level >= 10 ? "🌀" : level >= 7 ? "💨" : level >= 4 ? "🌬️" : "🍃";
+
   return (
-    <div className="glass-strong rounded-2xl p-4 space-y-2.5 animate-scale-in">
-      <div className="flex items-center gap-2">
-        <span className="text-base">{emoji}</span>
-        <h3 className="text-xs uppercase tracking-widest opacity-40 text-stone-600">风力科普 · {info.name}</h3>
+    <div className="card-warm-strong rounded-2xl p-4 space-y-2.5 animate-bounce-in" style={{ border: `1px solid ${WIND_LEVEL_COLORS[Math.min(level, 16)]}60` }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{emoji}</span>
+          <h3 className="text-xs font-bold uppercase tracking-widest opacity-50 text-stone-600">风力科普 · {info.name}</h3>
+        </div>
+        <span className="text-sm">{levelEmoji}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="bg-white/10 rounded-xl p-2.5">
           <span className="opacity-40 block mb-0.5">🌊 海面</span>
-          <span className="font-medium text-stone-600">{info.sea}</span>
+          <span className="font-bold text-stone-600">{info.sea}</span>
         </div>
         <div className="bg-white/10 rounded-xl p-2.5">
           <span className="opacity-40 block mb-0.5">🌲 陆地</span>
-          <span className="font-medium text-stone-600">{info.land}</span>
+          <span className="font-bold text-stone-600">{info.land}</span>
         </div>
       </div>
 
-      <p className="text-sm text-stone-600 leading-relaxed opacity-75">
+      <p className="text-sm text-stone-600 leading-relaxed opacity-80 font-medium">
         {info.desc}
       </p>
 
       <div className="flex items-center gap-1.5 text-xs bg-white/10 rounded-xl px-3 py-2">
         <span>💡</span>
-        <span className="opacity-60 text-stone-500">{info.tip}</span>
+        <span className="opacity-70 text-stone-500 font-medium">{info.tip}</span>
       </div>
     </div>
   );
@@ -308,43 +279,50 @@ function ChallengeResult({
   const targetInfo = getWindInfo(targetLevel);
   const resultInfo = getWindInfo(result.level);
   const gap = targetLevel - result.level;
-  const colors = ["#b5c4b1", "#c4c9b5", "#c4b5d4", "#b5c4c9", "#d4c9b5", "#d4b5b5", "#d4a0a0", "#c9a9b8", "#c08080", "#b07070", "#a06060", "#905050", "#e8a0a0", "#d08080", "#c06060", "#a04040"];
-  const color = colors[Math.min(result.level, 16)] || "#e8a0a0";
+  const color = WIND_LEVEL_COLORS[Math.min(result.level, 16)] || "#e8a0a0";
+
+  const resultEmoji = result.level >= 15 ? "💀" : result.level >= 12 ? "🌀" : result.level >= 9 ? "🌪️" : result.level >= 6 ? "💨" : result.level >= 3 ? "🌬️" : "🍃";
 
   return (
-    <div className="animate-fade-in-up space-y-3">
-      <div className="glass-strong rounded-2xl p-4 text-center">
-        <span className="text-3xl">{result.level >= 12 ? "💨" : result.level >= 8 ? "🌪️" : result.level >= 4 ? "🌬️" : "🍃"}</span>
-        <div className="mt-1">
-          <span className="text-xl font-bold" style={{ color }}>{result.level}</span>
-          <span className="text-xs opacity-40 text-stone-500 ml-1">级 · {resultInfo.name}</span>
+    <div className="animate-bounce-in space-y-3">
+      <div className="glass-strong rounded-2xl p-5 text-center" style={{ border: `2px solid ${color}40` }}>
+        <div className="text-4xl mb-2">{resultEmoji}</div>
+        <div className="flex items-center justify-center gap-1">
+          <span className="text-4xl font-black tabular-nums" style={{ color }}>{result.level}</span>
+          <span className="text-sm opacity-40 text-stone-500 mt-2">级 · {resultInfo.name}</span>
         </div>
-        <div className="mt-2 text-xs opacity-60 text-stone-500">
-          你吹出了 {result.score} 分 · 峰值 {result.peak} · 持久度 {result.durPct}%
+        <div className="mt-2 flex justify-center gap-4 text-xs">
+          <span className="opacity-50 text-stone-500">🎯 {result.score}分</span>
+          <span className="opacity-30">|</span>
+          <span className="opacity-50 text-stone-500">📈 峰值{result.peak}</span>
+          <span className="opacity-30">|</span>
+          <span className="opacity-50 text-stone-500">⏱ {result.durPct}%</span>
         </div>
-        <div className="mt-1 text-xs opacity-50 text-stone-500">{result.stability}</div>
+        <div className="mt-1 text-xs opacity-40 text-stone-500">{result.stability}</div>
       </div>
 
       {gap > 0 && (
-        <div className="glass-strong rounded-2xl p-3 text-center text-sm">
-          <span className="opacity-60 text-stone-500">
-            目标 {targetLevel} 级 · 还差 <span style={{ color: "#d4b5b5" }}>{gap}</span> 级 💪
+        <div className="glass-strong rounded-2xl p-3 text-center animate-bounce-in">
+          <span className="text-sm opacity-70 text-stone-500">
+            目标 {targetLevel} 级 · 还差 <span className="font-bold" style={{ color: "#d4b5b5" }}>{gap}</span> 级 💪
           </span>
         </div>
       )}
       {gap <= 0 && (
-        <div className="glass-strong rounded-2xl p-3 text-center text-sm" style={{ color: "#b5c4b1" }}>
-          🎉 达到目标！你吹出了 {targetLevel} 级以上的大风！
+        <div className="glass-strong rounded-2xl p-3 text-center animate-bounce-in" style={{ border: "1px solid rgba(181, 196, 177, 0.4)" }}>
+          <span className="text-sm font-bold" style={{ color: "#b5c4b1" }}>
+            🎉🎉 达到目标！你吹出了 {targetLevel} 级以上的大风！🎉🎉
+          </span>
         </div>
       )}
 
       <div className="flex justify-center">
         <button
           onClick={onRetry}
-          className="rounded-2xl px-8 py-2.5 text-sm font-medium transition-all hover:scale-105 active:scale-95"
-          style={{ background: "rgba(255,255,255,0.25)", color: "#8a9a87", border: "1px solid rgba(255,255,255,0.3)" }}
+          className="rounded-2xl px-10 py-3 text-sm font-bold transition-all hover:scale-110 active:scale-90"
+          style={{ background: "rgba(255,255,255,0.25)", color: "#8a9a87", border: "2px solid rgba(255,255,255,0.3)" }}
         >
-          再挑战一次 🔄
+          🔄 再挑战一次
         </button>
       </div>
     </div>
@@ -363,6 +341,13 @@ export default function Home() {
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const liveProfileRef = useRef<number[]>([]);
   const [blowResult, setBlowResult] = useState<ReturnType<typeof useBlowingDetection>["result"]>(null);
+  const [scene, setScene] = useState<"beach" | "city" | "cute">("cute");
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [currentEntryId, setCurrentEntryId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLeaderboardEntries(getLeaderboard());
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -399,7 +384,15 @@ export default function Home() {
 
       timerRef.current = setTimeout(() => {
         const r = stopRecording();
-        if (r) setBlowResult(r);
+        if (r) {
+          setBlowResult(r);
+          const saved = saveLeaderboardEntry({
+            level: r.level, score: r.score, peak: r.peak, avg: r.avg,
+            durPct: r.durPct, stability: r.stability, scene,
+          });
+          if (saved) setCurrentEntryId(saved.id);
+          setLeaderboardEntries(getLeaderboard());
+        }
         setAppMode("done");
       }, 3000);
     }, 2400);
@@ -414,27 +407,56 @@ export default function Home() {
   const displayLevel = appMode === "done" ? (blowResult?.level ?? 0) : isRecording ? Math.round(currentLevel / 255 * 17) : appMode === "countdown" ? selectedLevel : selectedLevel;
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
-      style={{ background: "linear-gradient(135deg, #f5f0eb 0%, #e8e0d8 30%, #e0d8d0 60%, #e8e0d8 100%)" }}
+    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-white"
     >
-      <div className="fixed top-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full opacity-20 blur-3xl" style={{ background: "#b5c4b1" }} />
-      <div className="fixed bottom-[-10%] right-[-5%] w-[45%] h-[45%] rounded-full opacity-20 blur-3xl" style={{ background: "#c4b5d4" }} />
-      <div className="fixed top-[40%] right-[-8%] w-[25%] h-[25%] rounded-full opacity-15 blur-3xl" style={{ background: "#d4b5b5" }} />
 
       <div className="relative z-10 w-full max-w-md mx-auto px-4 py-6">
         {/* Header */}
-        <div className="text-center mb-3 animate-fade-in-up">
-          <h1 className="text-2xl font-bold tracking-tight">
-            <span className="text-shimmer">CyberWeather</span>
+        <div className="text-center mb-3 animate-bounce-in">
+          <div className="text-2xl mb-1 opacity-60" style={{ animation: "wiggle 2s ease-in-out infinite" }}>
+            🌪️💨🌊
+          </div>
+          <h1 className="text-3xl font-black tracking-tight">
+            <span className="text-shimmer">风神榜</span>
           </h1>
-          <p className="mt-0.5 text-xs opacity-50 text-stone-500">
-            天气 App 说今天几级风？来看看它到底有多大！
+          <p className="mt-1 text-sm font-medium opacity-60 text-stone-500">
+            对着麦克风吹气，看看你是几级大风！
           </p>
         </div>
 
+        {/* Scene Toggle */}
+        <div className="flex justify-center mb-3 gap-2 text-xs">
+          <button
+            onClick={() => setScene("beach")}
+            className={`px-5 py-2 rounded-xl font-bold transition-all ${
+              scene === "beach" ? "bg-stone-100 text-stone-700 shadow-sm ring-1 ring-stone-200" : "text-stone-400 hover:text-stone-600"
+            }`}
+          >
+            🏖️ 海滩
+          </button>
+          <button
+            onClick={() => setScene("city")}
+            className={`px-5 py-2 rounded-xl font-bold transition-all ${
+              scene === "city" ? "bg-stone-100 text-stone-700 shadow-sm ring-1 ring-stone-200" : "text-stone-400 hover:text-stone-600"
+            }`}
+          >
+            🌆 城市
+          </button>
+          <button
+            onClick={() => setScene("cute")}
+            className={`px-5 py-2 rounded-xl font-bold transition-all ${
+              scene === "cute" ? "bg-stone-100 text-stone-700 shadow-sm ring-1 ring-stone-200" : "text-stone-400 hover:text-stone-600"
+            }`}
+          >
+            🎀 可爱
+          </button>
+        </div>
+
         {/* Pixel Scene */}
-        <div className="glass rounded-3xl p-3 mb-3 shadow-xl animate-scale-in">
-          <PixelScene windLevel={displayLevel} />
+        <div className="rounded-3xl p-3 mb-3 shadow-lg" style={{ background: "rgba(245, 240, 235, 0.6)", border: "1px solid rgba(0,0,0,0.04)" }}>
+          {scene === "beach" && <PixelScene windLevel={displayLevel} />}
+          {scene === "city" && <CityScene windLevel={displayLevel} />}
+          {scene === "cute" && <CuteScene windLevel={displayLevel} />}
           {appMode === "done" && blowResult && (
             <div className="mt-2 text-center">
               <span className="text-xs opacity-50 text-stone-500">
@@ -445,7 +467,7 @@ export default function Home() {
         </div>
 
         {/* Wind Level Selector */}
-        <div className="glass rounded-3xl p-5 mb-3 shadow-xl animate-scale-in">
+        <div className="card-warm rounded-3xl p-5 mb-3 shadow-lg animate-scale-in">
           <WindLevelSelector
             level={appMode === "done" && blowResult ? blowResult.level : selectedLevel}
             onChange={appMode === "done" ? () => {} : setSelectedLevel}
@@ -453,19 +475,24 @@ export default function Home() {
 
           {/* Current level indicator */}
           {appMode === "blowing" && (
-            <div className="mt-3 text-center animate-fade-in-up">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                <span className="text-xs opacity-60 text-stone-500">吹气中... {Math.round(currentLevel / 255 * 17)} 级</span>
+            <div className="mt-4 text-center animate-bounce-in">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <span className="text-2xl animate-bounce">💨</span>
+                <span className="text-lg font-bold" style={{ color: WIND_LEVEL_COLORS[Math.min(Math.round(currentLevel / 255 * 17), 16)] || "#e8a0a0" }}>
+                  {Math.round(currentLevel / 255 * 17)} 级
+                </span>
+                <span className="text-2xl animate-bounce" style={{ animationDelay: "0.2s" }}>💨</span>
               </div>
-              <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-75"
+              <div className="h-3 rounded-full bg-white/20 overflow-hidden shadow-inner">
+                <div className="h-full rounded-full transition-all duration-100"
                   style={{
                     width: `${Math.min(100, (currentLevel / 255) * 100)}%`,
-                    background: "linear-gradient(90deg, #b5c4b1, #d4b5b5, #e8a0a0)"
+                    background: "linear-gradient(90deg, #b5c4b1, #d4b5b5, #e8a0a0, #ff6b6b)",
+                    boxShadow: "0 0 12px rgba(232, 160, 160, 0.5)"
                   }}
                 />
               </div>
+              <div className="mt-1 text-xs opacity-50 text-stone-500">拼命吹气中... 🔥</div>
             </div>
           )}
 
@@ -486,27 +513,27 @@ export default function Home() {
 
         {/* Action button */}
         {appMode === "browse" && (
-          <div className="glass rounded-2xl p-4 mb-3 shadow-lg animate-fade-in-up">
+          <div className="card-warm rounded-2xl p-5 mb-3 shadow-lg animate-bounce-in" style={{ border: "1px solid #e8e4de" }}>
             <div className="text-center">
-              <p className="text-xs opacity-40 text-stone-500 mb-3">
-                选好风力等级了？来试试你能吹出几级风！
+              <p className="text-xs font-medium opacity-50 text-stone-500 mb-3">
+                👇 选好风力等级了？来试试你的肺活量！👇
               </p>
               <button
                 onClick={handleBlow}
-                className="group relative overflow-hidden rounded-2xl px-10 py-3 text-base font-medium transition-all duration-300 hover:scale-105 active:scale-95"
+                className="group relative overflow-hidden rounded-2xl px-12 py-4 text-lg font-bold tracking-wide transition-all duration-300 hover:scale-110 active:scale-90 animate-pulse-glow"
                 style={{
-                  background: "linear-gradient(135deg, #b5c4b1 0%, #c4b5d4 50%, #d4b5b5 100%)",
+                  background: "linear-gradient(135deg, #d4b5b5 0%, #c4b5d4 50%, #b5c4b1 100%)",
                   color: "white",
-                  boxShadow: "0 4px 20px rgba(180, 196, 177, 0.3)",
+                  boxShadow: "0 8px 32px rgba(212, 181, 181, 0.4)",
                 }}
               >
-                <span className="relative z-10 flex items-center gap-2">
-                  <span>🎤</span>
-                  吹气挑战 {selectedLevel} 级
+                <span className="relative z-10 flex items-center gap-3">
+                  <span className="text-xl">🎤</span>
+                  吹气挑战 {selectedLevel} 级 🔥
                 </span>
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity bg-white" />
+                <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity rounded-2xl" />
               </button>
-              <p className="mt-2 text-xs opacity-30 text-stone-500">需要麦克风权限 · 吹 3 秒</p>
+              <p className="mt-3 text-xs opacity-40 text-stone-500">需要麦克风权限 · 吹 3 秒</p>
             </div>
           </div>
         )}
@@ -514,15 +541,18 @@ export default function Home() {
         {/* Recording wind profile */}
         {appMode === "blowing" && (
           <>
-            <div className="glass rounded-2xl p-3 mb-3 shadow-lg animate-fade-in-up">
-              <div className="text-xs uppercase tracking-widest opacity-40 text-stone-600 mb-1">🌊 实时风谱</div>
+            <div className="card-warm rounded-2xl p-3 mb-3 shadow-lg animate-bounce-in">
+              <div className="text-xs font-bold uppercase tracking-widest opacity-50 text-stone-600 mb-1">🌊 实时风谱</div>
               <WindProfileChart profile={liveProfileRef.current} maxSamples={80} />
             </div>
-            <div className="glass rounded-2xl p-4 shadow-lg animate-fade-in-up">
+            <div className="card-warm rounded-2xl p-4 shadow-lg animate-bounce-in">
               {error ? (
-                <div className="text-sm text-center" style={{ color: "#c08080" }}>{error}</div>
+                <div className="text-sm text-center font-bold" style={{ color: "#c08080" }}>{error}</div>
               ) : (
-                <div className="text-center text-xs opacity-40 text-stone-500">保持吹气 3 秒...</div>
+                <div className="text-center">
+                  <span className="text-lg animate-pulse">🎤</span>
+                  <span className="text-xs opacity-50 text-stone-500 ml-2">保持吹气 3 秒...</span>
+                </div>
               )}
             </div>
           </>
@@ -530,21 +560,31 @@ export default function Home() {
 
         {/* Result */}
         {appMode === "done" && blowResult && (
-          <div className="animate-fade-in-up space-y-3">
+          <div className="animate-bounce-in space-y-3">
             {/* Metrics mini dashboard */}
-            <div className="glass rounded-2xl p-4 shadow-lg">
+            <div className="card-warm rounded-2xl p-4 shadow-lg">
               <ChallengeResult result={blowResult} targetLevel={selectedLevel} onRetry={handleRetry} />
             </div>
 
             {/* Profile chart */}
             {blowResult && (
-              <div className="glass rounded-2xl p-3 shadow-lg">
-                <div className="text-xs uppercase tracking-widest opacity-40 text-stone-600 mb-1">📈 吹气过程曲线</div>
+              <div className="card-warm rounded-2xl p-3 shadow-lg">
+                <div className="text-xs font-bold uppercase tracking-widest opacity-50 text-stone-600 mb-1">📈 吹气过程曲线</div>
                 <WindProfileChart profile={profile} maxSamples={200} />
               </div>
             )}
           </div>
         )}
+
+        {/* Leaderboard */}
+        <div className="card-warm rounded-2xl p-3.5 shadow-lg animate-fade-in-up">
+          <LeaderboardPanel
+            entries={leaderboardEntries}
+            currentEntryId={currentEntryId}
+            onClear={() => { clearLeaderboard(); setLeaderboardEntries([]); }}
+            windLevel={selectedLevel}
+          />
+        </div>
 
         {/* Footer */}
         <div className="text-center mt-4 animate-fade-in-up">

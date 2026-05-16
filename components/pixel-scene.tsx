@@ -1,18 +1,13 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import { PS, W, H, CANVAS_W, CANVAS_H, px } from "@/lib/pixel-utils";
 
 interface PixelSceneProps {
   windLevel: number; // 0-17 (Beaufort scale)
 }
 
 // ===================== Pixel Scene =====================
-
-const PS = 4;
-const W = 100;
-const H = 75;
-const CANVAS_W = W * PS;
-const CANVAS_H = H * PS;
 
 // Colors
 const SKY_TOP = "#87CEEB";
@@ -73,21 +68,21 @@ interface CharState {
 
 function levelToState(level: number): CharState {
   const l = Math.max(0, Math.min(17, level));
-
+  // Dramatically exaggerated reactions — TikTok style!
   return {
-    tilt: l <= 2 ? 0 : Math.min(20, (l - 2) * 2.2),
-    slide: l <= 4 ? 0 : Math.min(18, (l - 4) * 1.8),
-    crouch: l <= 6 ? 0 : Math.min(6, (l - 6)),
-    armRaise: l <= 2 ? 0 : Math.min(5, (l - 2) * 0.4),
-    hatAttached: l < 6,
-    umbrellaAngle: l * 0.05,
-    umbrellaInsideOut: l >= 9,
-    floating: l >= 10 && l < 12,
-    blownAway: l >= 12,
-    sceneShake: l >= 13 ? Math.min(1, (l - 12) * 0.2) : 0,
-    palmBend: l >= 8 ? Math.min(1, (l - 7) * 0.15) : 0,
-    palmBroken: l >= 14,
-    sandstorm: l >= 11 ? Math.min(1, (l - 10) * 0.2) : 0,
+    tilt: l <= 1 ? 0 : Math.min(38, (l - 1) * 3.8),
+    slide: l <= 2 ? 0 : Math.min(35, (l - 2) * 3.2),
+    crouch: l <= 4 ? 0 : Math.min(10, (l - 4) * 1.2),
+    armRaise: l <= 1 ? 0 : Math.min(10, (l - 1) * 0.8),
+    hatAttached: l < 4,
+    umbrellaAngle: l * 0.09,
+    umbrellaInsideOut: l >= 7,
+    floating: l >= 9 && l < 11,
+    blownAway: l >= 11,
+    sceneShake: l >= 9 ? Math.min(1, (l - 8) * 0.15) : 0,
+    palmBend: l >= 5 ? Math.min(1, (l - 4) * 0.18) : 0,
+    palmBroken: l >= 12,
+    sandstorm: l >= 8 ? Math.min(1, (l - 7) * 0.18) : 0,
   };
 }
 
@@ -121,11 +116,6 @@ function initScene(): SceneState {
     hatLanded: false,
     hatLandPos: { x: 0, y: 0 },
   };
-}
-
-function px(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string) {
-  ctx.fillStyle = color;
-  ctx.fillRect(Math.round(x * PS), Math.round(y * PS), Math.round(w * PS), Math.round(h * PS));
 }
 
 // ===================== Background =====================
@@ -345,12 +335,16 @@ function drawCharacterBody(
   px(ctx, cx - 1 + tiltOff, headTop + 1, 2, 1, HAIR_DARK);
   px(ctx, cx + 2 + tiltOff, headTop + 1, 1, 1, HAIR_DARK);
 
-  // Eyes (scared expression at high wind)
-  if (cs.tilt > 10) {
-    // Wide scared eyes
-    px(ctx, cx - 2 + tiltOff, headTop + 3, 2, 1, EYE_WHITE);
-    px(ctx, cx + 1 + tiltOff, headTop + 3, 1, 1, EYE);
-    px(ctx, cx + 2 + tiltOff, headTop + 3, 1, 1, EYE_WHITE);
+  // Eyes — bug out EARLY and WIDE at tilt > 4 (was 10)
+  if (cs.tilt > 4) {
+    // Huge bugged-out eyes 😳
+    px(ctx, cx - 3 + tiltOff, headTop + 2, 3, 2, EYE_WHITE);
+    px(ctx, cx + 1 + tiltOff, headTop + 2, 3, 2, EYE_WHITE);
+    px(ctx, cx - 2 + tiltOff, headTop + 3, 1, 1, EYE);
+    px(ctx, cx + 2 + tiltOff, headTop + 3, 1, 1, EYE);
+    // Eyebrows up
+    px(ctx, cx - 3 + tiltOff, headTop + 1, 2, 1, HAIR_DARK);
+    px(ctx, cx + 2 + tiltOff, headTop + 1, 2, 1, HAIR_DARK);
   } else {
     px(ctx, cx - 2 + tiltOff, headTop + 3, 1, 1, EYE);
     px(ctx, cx + 1 + tiltOff, headTop + 3, 1, 1, EYE);
@@ -358,8 +352,17 @@ function drawCharacterBody(
     px(ctx, cx + 2 + tiltOff, headTop + 3, 1, 1, EYE_WHITE);
   }
 
-  // Mouth (open in shock at high wind)
-  if (cs.tilt > 12) {
+  // Mouth — dramatic O at wind 5+, tongue out at 9+
+  if (cs.tilt > 10) {
+    // Tongue out 😛
+    px(ctx, cx - 1 + tiltOff, headTop + 5, 3, 1, "#8B4513");
+    px(ctx, cx + tiltOff, headTop + 6, 1, 1, "#FF6B8A");
+  } else if (cs.tilt > 6) {
+    // Open mouth 😮
+    px(ctx, cx - 1 + tiltOff, headTop + 5, 3, 1, "#8B4513");
+    px(ctx, cx + tiltOff, headTop + 5, 1, 1, "#FF8E8E");
+  } else if (cs.tilt > 3) {
+    // Small O
     px(ctx, cx + tiltOff, headTop + 5, 1, 1, "#8B4513");
   }
 
@@ -462,15 +465,16 @@ function drawUmbrella(
 
 function drawWindLines(ctx: CanvasRenderingContext2D, level: number, time: number) {
   if (level < 1) return;
-  const count = Math.min(15, level + 2);
+  const count = Math.min(25, level + 4);
   for (let i = 0; i < count; i++) {
-    const offset = (i * 17 + 7) % 50;
-    const lx = ((time * (0.5 + level * 0.08) + offset * 3) % (W + 20)) - 10;
-    const ly = 18 + (i * 5) % 30;
-    const opacity = 0.05 + level * 0.015;
-    ctx.fillStyle = `rgba(255,255,255,${Math.min(opacity, 0.4)})`;
-    const len = 2 + Math.round(level * 0.5);
-    px(ctx, lx, ly, len, 1, ctx.fillStyle as string);
+    const offset = (i * 17 + 7) % 60;
+    const speed = 0.6 + level * 0.12;
+    const lx = ((time * speed + offset * 3) % (W + 30)) - 15;
+    const ly = 5 + (i * 4 + offset) % 40;
+    const opacity = 0.08 + level * 0.025;
+    ctx.fillStyle = `rgba(255,255,255,${Math.min(opacity, 0.55)})`;
+    const len = 3 + Math.round(level * 0.7);
+    px(ctx, lx, ly, len, 2, ctx.fillStyle as string);
   }
 }
 
@@ -519,53 +523,53 @@ export default function PixelScene({ windLevel: level }: PixelSceneProps) {
       const cs = charStateRef.current;
 
       // === Update effects ===
-      const windSpeed = 0.3 + intLevel * 0.2;
+      const windSpeed = 0.3 + intLevel * 0.25;
 
-      // Sand particles
-      if (intLevel > 0 && state.time % Math.max(1, 4 - Math.floor(intLevel / 5)) === 0) {
-        const pCount = Math.min(6, Math.floor(intLevel / 3) + 1);
+      // Sand particles — more, faster
+      if (intLevel > 0 && state.time % Math.max(1, 3 - Math.floor(intLevel / 4)) === 0) {
+        const pCount = Math.min(10, Math.floor(intLevel / 2) + 1);
         for (let i = 0; i < pCount; i++) {
           const colors = ["#EDCBA0", "#E0C090", "#D4B080", "#F5E6A3"];
           state.particles.push({
-            x: -1 - Math.random() * 2,
-            y: 40 + Math.random() * 25,
-            vx: 0.3 + Math.random() * windSpeed * 0.15,
-            vy: -0.1 - Math.random() * 0.3 * (1 + intLevel * 0.05),
+            x: -1 - Math.random() * 3,
+            y: 35 + Math.random() * 30,
+            vx: 0.4 + Math.random() * windSpeed * 0.2,
+            vy: -0.15 - Math.random() * 0.4 * (1 + intLevel * 0.06),
             size: 1 + Math.round(Math.random() * 2),
             color: colors[Math.floor(Math.random() * colors.length)],
           });
         }
       }
 
-      // Debris at very high wind
-      if (intLevel >= 11 && state.time % 4 === 0) {
+      // Debris — starts earlier (level 7 instead of 11)
+      if (intLevel >= 7 && state.time % 3 === 0) {
         const debrisColors = ["#4A8C3F", "#8B6914", "#A08050", "#666"];
         state.debris.push({
           x: -2,
-          y: 15 + Math.random() * 45,
-          vx: 0.8 + Math.random() * windSpeed * 0.2,
-          vy: -0.5 + Math.random() * 1,
+          y: 10 + Math.random() * 50,
+          vx: 0.8 + Math.random() * windSpeed * 0.25,
+          vy: -0.5 + Math.random() * 1.2,
           size: 1 + Math.round(Math.random() * 3),
           color: debrisColors[Math.floor(Math.random() * debrisColors.length)],
         });
       }
 
-      // Hat flying
-      if (intLevel >= 6 && !cs.hatAttached && !state.hatLanded) {
-        state.hatOffset.x += 0.3 + intLevel * 0.05;
-        state.hatOffset.y -= 0.2 + Math.sin(state.time * 0.12) * 0.3;
-        state.hatRotation += 0.04;
+      // Hat flying — more dramatic!
+      if (intLevel >= 4 && !cs.hatAttached && !state.hatLanded) {
+        state.hatOffset.x += 0.5 + intLevel * 0.08;
+        state.hatOffset.y -= 0.3 + Math.sin(state.time * 0.15) * 0.5;
+        state.hatRotation += 0.06;
         if (state.hatOffset.x > 35) {
           state.hatLanded = true;
           state.hatLandPos = {
             x: Math.round(W / 2) + Math.round(state.hatOffset.x),
-            y: 60 + Math.round(state.hatOffset.y),
+            y: 58 + Math.round(state.hatOffset.y),
           };
         }
       }
 
       // Reset hat if coming back to low wind
-      if (intLevel < 6) {
+      if (intLevel < 4) {
         state.hatOffset = { x: 0, y: 0 };
         state.hatRotation = 0;
         state.hatLanded = false;
@@ -590,8 +594,8 @@ export default function PixelScene({ windLevel: level }: PixelSceneProps) {
       });
       if (state.debris.length > 50) state.debris.splice(0, 20);
 
-      // Update clouds
-      const cloudSpeed = 0.03 + intLevel * 0.015;
+      // Update clouds — faster!
+      const cloudSpeed = 0.05 + intLevel * 0.025;
       for (const c of state.clouds) {
         c.x += cloudSpeed;
         if (c.x > W + 5) c.x = -c.w - 5;
@@ -600,9 +604,10 @@ export default function PixelScene({ windLevel: level }: PixelSceneProps) {
       // === DRAW ===
       ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
-      // Scene shake offset
-      const shakeX = cs.sceneShake > 0 ? Math.round(Math.sin(state.time * 0.3) * cs.sceneShake * 3) : 0;
-      const shakeY = cs.sceneShake > 0 ? Math.round(Math.cos(state.time * 0.2) * cs.sceneShake * 2) : 0;
+      // Scene shake offset — more dramatic!
+      const shakeIntensity = cs.sceneShake > 0 ? 2 + cs.sceneShake * 5 : 0;
+      const shakeX = shakeIntensity > 0 ? Math.round(Math.sin(state.time * 0.5) * shakeIntensity) : 0;
+      const shakeY = shakeIntensity > 0 ? Math.round(Math.cos(state.time * 0.35) * shakeIntensity * 0.7) : 0;
 
       ctx.save();
       ctx.translate(shakeX, shakeY);
@@ -610,11 +615,11 @@ export default function PixelScene({ windLevel: level }: PixelSceneProps) {
       drawSky(ctx);
       drawClouds(ctx, state.clouds, state.time, intLevel);
 
-      // Storm overlay (darken sky at high levels)
-      if (intLevel >= 11) {
-        const stormAlpha = Math.min(0.4, (intLevel - 10) * 0.05);
-        ctx.fillStyle = `rgba(80,80,80,${stormAlpha})`;
-        ctx.fillRect(0, 0, CANVAS_W, 25 * PS);
+      // Storm overlay — stronger, starts earlier
+      if (intLevel >= 8) {
+        const stormAlpha = Math.min(0.5, (intLevel - 7) * 0.06);
+        ctx.fillStyle = `rgba(50,50,60,${stormAlpha})`;
+        ctx.fillRect(0, 0, CANVAS_W, 35 * PS);
       }
 
       drawWindLines(ctx, intLevel, state.time);
@@ -637,7 +642,7 @@ export default function PixelScene({ windLevel: level }: PixelSceneProps) {
       drawUmbrella(ctx, cs, state.time, charCx, charCy);
 
       // Flying hat
-      if (intLevel >= 6 && !cs.hatAttached) {
+      if (intLevel >= 4 && !cs.hatAttached) {
         const baseX = Math.round(W / 2);
         const baseY = 34 - 5;
         if (state.hatLanded) {

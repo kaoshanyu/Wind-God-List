@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CyberWeather - 吹气生成你的趣味天气报告",
+  title: "风神榜 - 吹气生成你的趣味天气报告",
   description: "对着麦克风吹气，AI 分析你的「风力」并生成一份搞笑的定制天气报告！",
 };
 
