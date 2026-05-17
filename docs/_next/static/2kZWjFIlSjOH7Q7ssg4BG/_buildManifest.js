@@ -1,7 +1,12 @@
 self.__BUILD_MANIFEST = {
   "__rewrites": {
     "afterFiles": [],
-    "beforeFiles": [],
+    "beforeFiles": [
+      {
+        "source": "/Wind-God-List//_next/:path+",
+        "destination": "/Wind-God-List/_next/:path+"
+      }
+    ],
     "fallback": []
   },
   "sortedPages": [
